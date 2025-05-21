@@ -1,69 +1,65 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>체험단 연락처 추출기</title>
-  <script>
-    function parseData() {
-      const input = document.getElementById("inputText").value;
-      const lines = input.trim().split(/\n+/);
-      const tableBody = document.getElementById("tableBody");
-      const numbers = [];
-      tableBody.innerHTML = "";
+  <meta charset="UTF-8">
+  <title>후기 필터링 스크린샷 추출기</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    button { padding: 0.5rem 1rem; margin: 1rem 0; }
+    canvas { max-width: 100%; }
+    #results { white-space: pre-wrap; margin-top: 1rem; background: #f9f9f9; padding: 1rem; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>후기 미작성자 추출기 (스크린샷 기반)</h1>
+  <p>테이블 화면에서 스크린샷을 찍고 분석해보세요.</p>
 
-      lines.forEach(line => {
-        const match = line.match(/^(\S+)\s+썸네일 이미지\s+(\S+)\s+(01\d{8})/);
-        if (match) {
-          const [_, nickname, name, number] = match;
-          numbers.push(number);
-          const row = `<tr class="border-t">
-            <td class="p-2 border">${nickname}</td>
-            <td class="p-2 border">${name}</td>
-            <td class="p-2 border">${number}</td>
-          </tr>`;
-          tableBody.innerHTML += row;
-        }
+  <input type="file" accept="image/*" id="imageInput">
+  <div id="preview"></div>
+  <button id="analyzeBtn">🔍 분석 시작</button>
+
+  <h2>📋 추출된 번호 (복사 가능)</h2>
+  <button onclick="copyToClipboard()">📄 복사하기</button>
+  <div id="results"></div>
+
+  <script>
+    let extractedNumbers = '';
+
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        document.getElementById('preview').innerHTML = '';
+        document.getElementById('preview').appendChild(img);
+      };
+    });
+
+    document.getElementById('analyzeBtn').addEventListener('click', async function() {
+      const img = document.querySelector('#preview img');
+      if (!img) return alert('이미지를 먼저 업로드하세요');
+
+      const result = await Tesseract.recognize(img, 'kor+eng', {
+        logger: m => console.log(m)
       });
 
-      document.getElementById("numberList").value = numbers.join("\n");
-    }
+      const text = result.data.text;
+      console.log(text);
 
-    function copyNumbers() {
-      const numberList = document.getElementById("numberList");
-      numberList.select();
-      document.execCommand("copy");
-      alert("번호가 복사되었습니다!");
+      const numbers = [...text.matchAll(/010\d{8}/g)].map(m => m[0]);
+      extractedNumbers = numbers.join('\n');
+      document.getElementById('results').textContent = extractedNumbers || '추출된 번호가 없습니다.';
+    });
+
+    function copyToClipboard() {
+      navigator.clipboard.writeText(extractedNumbers)
+        .then(() => alert('복사되었습니다!'))
+        .catch(() => alert('복사 실패'));
     }
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-4xl mx-auto bg-white shadow-md p-6 rounded-xl space-y-6">
-    <h1 class="text-2xl font-bold text-center">체험단 연락처 추출기</h1>
-    <textarea id="inputText" rows="8" class="w-full p-3 border rounded" placeholder="한식팀장님, CMS에서 당첨자 정보를 쭉 긁어다가 여기에 한번에 붙여넣기해보세요"></textarea>
-    <button onclick="parseData()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">표로 만들기</button>
-
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse border border-gray-300 mt-4">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 border">닉네임</th>
-            <th class="p-2 border">이름</th>
-            <th class="p-2 border">번호</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-
-    <div>
-      <div class="flex justify-between items-center mt-4">
-        <label class="font-semibold">번호 전체 복사</label>
-        <button onclick="copyNumbers()" class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600">복사하기</button>
-      </div>
-      <textarea id="numberList" class="w-full p-2 mt-2 border rounded h-32" readonly></textarea>
-    </div>
-  </div>
 </body>
 </html>
