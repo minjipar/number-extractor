@@ -3,30 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>체험단 번호 추출기</title>
-  <script defer>
-    function extractNumbers() {
+  <title>연락처 추출기</title>
+  <script>
+    function parseData() {
       const input = document.getElementById("inputText").value;
-      const numbers = [...input.matchAll(/^\d+/gm)].map(m => m[0]).join(", ");
-      document.getElementById("output").value = numbers;
+      const lines = input.trim().split(/\n+/);
+      const tableBody = document.getElementById("tableBody");
+      const numbers = [];
+      tableBody.innerHTML = "";
+
+      lines.forEach(line => {
+        const match = line.match(/^(\S+)\s+썸네일 이미지\s+(\S+)\s+(01\d{8})/);
+        if (match) {
+          const [_, nickname, name, number] = match;
+          numbers.push(number);
+          const row = `<tr class="border-t">
+            <td class="p-2 border">${nickname}</td>
+            <td class="p-2 border">${name}</td>
+            <td class="p-2 border">${number}</td>
+          </tr>`;
+          tableBody.innerHTML += row;
+        }
+      });
+
+      document.getElementById("numberList").value = numbers.join("\n");
     }
 
-    function copyToClipboard() {
-      const output = document.getElementById("output");
-      output.select();
+    function copyNumbers() {
+      const numberList = document.getElementById("numberList");
+      numberList.select();
       document.execCommand("copy");
-      alert("복사되었습니다!");
+      alert("번호가 복사되었습니다!");
     }
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-6">
-  <div class="max-w-2xl mx-auto bg-white shadow-md p-6 rounded-xl space-y-4">
-    <h1 class="text-2xl font-bold text-center">체험단 번호 추출기</h1>
-    <textarea id="inputText" rows="10" class="w-full p-2 border rounded" placeholder="체험단 당첨된 리스트 마우스로 싹 긁어서 여기에 붙여넣으세요!"></textarea>
-    <button onclick="extractNumbers()" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">번호 추출</button>
-    <textarea id="output" rows="3" class="w-full p-2 border rounded" placeholder="여기에 핸드폰번호만 보여져요!" readonly></textarea>
-    <button onclick="copyToClipboard()" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">복사하기</button>
+  <div class="max-w-4xl mx-auto bg-white shadow-md p-6 rounded-xl space-y-6">
+    <h1 class="text-2xl font-bold text-center">연락처 추출기</h1>
+    <textarea id="inputText" rows="8" class="w-full p-3 border rounded" placeholder="여기에 텍스트 붙여넣기..."></textarea>
+    <button onclick="parseData()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">표로 만들기</button>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse border border-gray-300 mt-4">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 border">닉네임</th>
+            <th class="p-2 border">이름</th>
+            <th class="p-2 border">번호</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="flex justify-between items-center mt-4">
+        <label class="font-semibold">번호 전체 복사</label>
+        <button onclick="copyNumbers()" class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600">복사하기</button>
+      </div>
+      <textarea id="numberList" class="w-full p-2 mt-2 border rounded h-32" readonly></textarea>
+    </div>
   </div>
 </body>
 </html>
