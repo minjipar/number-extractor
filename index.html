@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>후기 미작성자 추출기</title>
+  <title>후기 미작성자 추출기 (색상 기반)</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; }
@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h1>후기 미작성자 추출기</h1>
+  <h1>후기 미작성자 추출기 (색상 기반)</h1>
   <input type="file" accept="image/*" id="imageInput">
   <button id="analyzeBtn">🔍 분석 시작</button>
   <div id="loading">🔄 이미지 분석 중입니다... 잠시만 기다려주세요.</div>
@@ -48,26 +48,43 @@
 
     document.getElementById('analyzeBtn').addEventListener('click', async function() {
       if (!uploadedImage) return alert('이미지를 먼저 업로드하세요');
-
       document.getElementById('loading').style.display = 'block';
 
+      // Step 1: OCR
       const result = await Tesseract.recognize(uploadedImage, 'kor+eng', {
         logger: m => console.log(m)
       });
 
-      document.getElementById('loading').style.display = 'none';
-
       const text = result.data.text;
       const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+
+      // Step 2: Color analysis
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = uploadedImage.width;
+      canvas.height = uploadedImage.height;
+      ctx.drawImage(uploadedImage, 0, 0);
+
       const tbody = document.querySelector('#userTable tbody');
       tbody.innerHTML = '';
       const phoneList = [];
 
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes('●') && !lines[i].includes('초록') && !lines[i].includes('green')) {
-          const nickname = lines[i + 1] || '';
-          const name = lines[i + 3] || '';
-          const phone = (lines[i + 4] || '').match(/010\d{8}/)?.[0] || '';
+      // 후기 열 X 좌표 예시 설정 (해당 위치는 실제 이미지에 따라 조정 필요)
+      const x = 180; // 후기 원이 위치한 열의 X 좌표 (대략적 기준)
+      const rowHeight = 50;
+      const offsetY = 50;
+
+      for (let i = 0; i < 40; i++) {
+        const y = offsetY + i * rowHeight;
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const [r, g, b] = pixel;
+
+        const isRed = r > 180 && g < 100 && b < 100;
+        if (isRed) {
+          const rangeText = lines.slice(i * 2, i * 2 + 6).join(" ");
+          const nickname = rangeText.match(/\S{2,}/)?.[0] || '';
+          const name = rangeText.match(/[가-힣]{2,}/g)?.[1] || '';
+          const phone = rangeText.match(/010\d{8}/)?.[0] || '';
           if (nickname && name && phone) {
             const row = document.createElement('tr');
             row.innerHTML = `<td>${nickname}</td><td>${name}</td><td>${phone}</td>`;
@@ -79,6 +96,7 @@
 
       extractedNumbers = phoneList.join('\n');
       document.getElementById('results').textContent = extractedNumbers || '추출된 번호가 없습니다.';
+      document.getElementById('loading').style.display = 'none';
     });
 
     function copyToClipboard() {
