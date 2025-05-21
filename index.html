@@ -3,24 +3,30 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>후기 필터링 스크린샷 추출기</title>
+  <title>후기 미작성자 추출기</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; }
     button { padding: 0.5rem 1rem; margin: 1rem 0; }
-    canvas { max-width: 100%; }
-    #results { white-space: pre-wrap; margin-top: 1rem; background: #f9f9f9; padding: 1rem; border: 1px solid #ccc; }
+    table { border-collapse: collapse; margin-top: 1rem; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    #results { white-space: pre-wrap; background: #f9f9f9; padding: 1rem; border: 1px solid #ccc; margin-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>후기 미작성자 추출기 (스크린샷 기반)</h1>
-  <p>테이블 화면에서 스크린샷을 찍고 분석해보세요.</p>
-
+  <h1>후기 미작성자 추출기</h1>
   <input type="file" accept="image/*" id="imageInput">
   <button id="analyzeBtn">🔍 분석 시작</button>
 
-  <h2>📋 추출된 번호 (복사 가능)</h2>
+  <h2>📊 미작성자 목록</h2>
+  <table id="userTable">
+    <thead>
+      <tr><th>닉네임</th><th>이름</th><th>전화번호</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>📋 복사용 번호 목록</h2>
   <button onclick="copyToClipboard()">📄 복사하기</button>
   <div id="results"></div>
 
@@ -46,10 +52,26 @@
       });
 
       const text = result.data.text;
-      console.log(text);
+      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+      const tbody = document.querySelector('#userTable tbody');
+      tbody.innerHTML = '';
+      const phoneList = [];
 
-      const numbers = [...text.matchAll(/010\d{8}/g)].map(m => m[0]);
-      extractedNumbers = numbers.join('\n');
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('●')) {
+          const nickname = lines[i + 1] || '';
+          const name = lines[i + 3] || '';
+          const phone = (lines[i + 4] || '').match(/010\d{8}/)?.[0] || '';
+          if (nickname && name && phone) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${nickname}</td><td>${name}</td><td>${phone}</td>`;
+            tbody.appendChild(row);
+            phoneList.push(phone);
+          }
+        }
+      }
+
+      extractedNumbers = phoneList.join('\n');
       document.getElementById('results').textContent = extractedNumbers || '추출된 번호가 없습니다.';
     });
 
