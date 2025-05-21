@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>번호 추출기</title>
+  <script defer>
+    function extractNumbers() {
+      const input = document.getElementById("inputText").value;
+      const numbers = [...input.matchAll(/^\d+/gm)].map(m => m[0]).join(", ");
+      document.getElementById("output").value = numbers;
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById("output");
+      output.select();
+      document.execCommand("copy");
+      alert("복사되었습니다!");
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-2xl mx-auto bg-white shadow-md p-6 rounded-xl space-y-4">
+    <h1 class="text-2xl font-bold text-center">번호 추출기</h1>
+    <textarea id="inputText" rows="10" class="w-full p-2 border rounded" placeholder="여기에 텍스트 붙여넣기..."></textarea>
+    <button onclick="extractNumbers()" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">번호 추출</button>
+    <textarea id="output" rows="3" class="w-full p-2 border rounded" placeholder="결과가 여기에 나타납니다..." readonly></textarea>
+    <button onclick="copyToClipboard()" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">복사하기</button>
+  </div>
+</body>
+</html>
